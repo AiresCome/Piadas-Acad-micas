@@ -15,6 +15,8 @@
     <a href="Listar.php">Ver uma piada</a>
     <br><br>
     <a href="Adicionar.php">Adicionar uma piada</a>
+    <br><br><br><br>
+    <a href="gerenciar.php"> Painel Admin</a>
 
 </body>
 </html>

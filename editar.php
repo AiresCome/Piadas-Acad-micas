@@ -1,39 +1,68 @@
 <?php
+
 require_once "config/conexao.php";
 
-$id = $_GET["id"];
+$id = (int) $_GET["id"];
 
 $sql = "SELECT * FROM piadas WHERE id = ?";
-
 $stmt = $pdo->prepare($sql);
-
 $stmt->execute([$id]);
 
 $piada = $stmt->fetch();
 
-
-if(isset($_POST["editar"])) {
-
-    $categoria = $_POST["categoria"];
-    $texto = $_POST["texto"];
-
-    $sql = "UPDATE piadas SET categoria = ?, texto = ? WHERE id = ?";
-
-    $stmt = $pdo->prepare($sql);
-
-    $stmt->execute([$categoria, $texto, $id]);
-
-    echo "Piada editada com sucesso!";
+if (!$piada) {
+    echo "Piada não encontrada.";
+    exit;
 }
 
+$area_id = $piada["area_id"];
+$texto = $piada["texto"];
+$mensagem = "";
+
+
+// Buscar todas as áreas
+$sql = "SELECT areas.id, areas.nome AS area,
+               niveis.nome AS nivel
+        FROM areas
+        INNER JOIN niveis
+            ON areas.nivel_id = niveis.id
+        ORDER BY niveis.id, areas.nome";
+
+$stmt = $pdo->query($sql);
+$areas = $stmt->fetchAll();
+
+
+// Guardar alterações
+if (isset($_POST["editar"])) {
+
+    $area_id = (int) $_POST["area_id"];
+    $texto = trim($_POST["texto"]);
+
+    if ($texto == "") {
+
+        $mensagem = "A piada não pode estar vazia.";
+
+    } else {
+
+        $sql = "UPDATE piadas
+                SET area_id = ?, texto = ?
+                WHERE id = ?";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$area_id, $texto, $id]);
+
+        header("Location: gerenciar.php");
+        exit;
+    }
+}
 
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Piada</title>
 </head>
 
@@ -41,29 +70,56 @@ if(isset($_POST["editar"])) {
 
     <h1>Editar Piada</h1>
 
-    <form method="POST">
+    <p><?php echo $mensagem; ?></p>
 
-    <label>Categoria:</label>
-    <select name="categoria">
-        <option value="programacao">Programação</option>
-        <option value="asri">ASRI</option>
-        <option value="medicina">Medicina</option>
-        <option value="contabilidade">Contabilidade</option>  
-        <option value="mecanica">Mecânica</option>
-        <option value="aduaneiro">Aduaneiro</option>
-        <option value="geral">Geral</option>
-    </select>
+    <form method="POST" action="editar.php?id=<?php echo $id; ?>">
 
-    <br><br>
+        <label>Área:</label>
 
-    <label>Piada:</label>
-    <textarea name="texto"><?php echo $piada["texto"]; ?></textarea>
+        <select name="area_id">
 
-    <br><br>
-    
-    <button type="submit" name="editar">Guardar alterações</button>
+            <?php foreach ($areas as $area) { ?>
+
+                <option
+                    value="<?php echo $area["id"]; ?>"
+                    <?php
+                    if ($area_id == $area["id"]) {
+                        echo "selected";
+                    }
+                    ?>
+                >
+                    <?php
+                    echo htmlspecialchars(
+                        $area["nivel"] . " - " . $area["area"]
+                    );
+                    ?>
+                </option>
+
+            <?php } ?>
+
+        </select>
+
+        <br><br>
+
+        <label>Piada:</label>
+
+        <br>
+
+        <textarea name="texto" required><?php
+            echo htmlspecialchars($texto);
+        ?></textarea>
+
+        <br><br>
+
+        <button type="submit" name="editar">
+            Guardar alterações
+        </button>
 
     </form>
+
+    <br>
+
+    <a href="gerenciar.php">Voltar</a>
 
 </body>
 

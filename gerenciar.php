@@ -1,19 +1,27 @@
 <?php
+
 require_once "config/conexao.php";
 
-$sql = "SELECT * FROM piadas";
+$sql = "SELECT piadas.id, piadas.texto,
+               areas.nome AS area,
+               niveis.nome AS nivel
+        FROM piadas
+        INNER JOIN areas
+            ON piadas.area_id = areas.id
+        INNER JOIN niveis
+            ON areas.nivel_id = niveis.id
+        ORDER BY piadas.id DESC";
 
 $stmt = $pdo->query($sql);
-
 $piadas = $stmt->fetchAll();
 
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Piadas</title>
 </head>
 
@@ -21,30 +29,42 @@ $piadas = $stmt->fetchAll();
 
     <h1>Gerenciar Piadas</h1>
 
-<?php 
+    <?php if (count($piadas) > 0) { ?>
 
-    foreach($piadas as $piada){?>
-    
-    <p>
-        <strong><?php echo $piada["categoria"]; ?></strong>
-    </p>
+        <?php foreach ($piadas as $piada) { ?>
 
-    <p>
-        <?php echo $piada["texto"]; ?>
-    </p>
-    
-    <a href="editar.php?id=<?php echo $piada["id"]; ?>">
-        Editar
-    </a>
+            <h3>
+                <?php echo htmlspecialchars($piada["nivel"]); ?>
+                -
+                <?php echo htmlspecialchars($piada["area"]); ?>
+            </h3>
 
-    <a href="eliminar.php?id=<?php echo $piada["id"]; ?>">
-        Eliminar
-    </a>
+            <p>
+                <?php echo htmlspecialchars($piada["texto"]); ?>
+            </p>
 
-    <hr>
+            <a href="editar.php?id=<?php echo $piada["id"]; ?>">
+                Editar
+            </a>
+
+            |
+
+            <a href="eliminar.php?id=<?php echo $piada["id"]; ?>">
+                Eliminar
+            </a>
+
+            <hr>
+
+        <?php } ?>
+
+    <?php } else { ?>
+
+        <p>Ainda não existem piadas registadas.</p>
 
     <?php } ?>
 
+    <a href="index.php">Voltar ao início</a>
+
 </body>
 
-</html>l
+</html>

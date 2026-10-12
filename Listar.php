@@ -1,62 +1,151 @@
 <?php
+
 require_once "config/conexao.php";
 
-$piada = null;
+$sql = "SELECT * FROM niveis";
+$stmt = $pdo->query($sql);
+$niveis = $stmt->fetchAll();
 
+$areas = [];
+$piada = null;
+$nivel_id = null;
+$area_id = null;
+$mostrarAreas = false;
+$semPiadas = false;
+
+
+// Escolher nível e buscar áreas
+if (isset($_POST["continuar"]) || isset($_POST["ver"])) {
+
+    $nivel_id = $_POST["nivel_id"];
+
+    $sql = "SELECT * FROM areas WHERE nivel_id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$nivel_id]);
+
+    $areas = $stmt->fetchAll();
+
+    $mostrarAreas = true;
+}
+
+
+// Buscar uma piada aleatória
 if (isset($_POST["ver"])) {
 
-    $categoria = $_POST["categoria"];
+    $area_id = $_POST["area_id"];
 
-    $sql = "SELECT texto FROM piadas WHERE categoria = ? ORDER BY RAND() LIMIT 1";
+    $sql = "SELECT piadas.texto
+            FROM piadas
+            INNER JOIN areas ON piadas.area_id = areas.id
+            WHERE piadas.area_id = ?
+            AND areas.nivel_id = ?
+            ORDER BY RAND()
+            LIMIT 1";
 
     $stmt = $pdo->prepare($sql);
-
-    $stmt->execute([$categoria]);
+    $stmt->execute([$area_id, $nivel_id]);
 
     $piada = $stmt->fetch();
+
+    if (!$piada) {
+        $semPiadas = true;
+    }
 }
+
 ?>
 
-
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ver Piada</title>
 </head>
 
 <body>
 
-    <h1>Espaço para visualizar as piadas </h1>    
+    <h1>Piadas Académicas</h1>
 
-    <form method="POST">
-        
-        <label>Escolha uma categoria:</label>
-        <select name="categoria">
-            <option value="programacao">Programação</option>
-            <option value="asri">ASRI</option>
-            <option value="medicina">Medicina</option>
-            <option value="contabilidade">Contabilidade</option>  
-            <option value="mecanica">Mecânica</option>
-            <option value="aduaneiro">Aduaneiro</option>
-            <option value="geral">Geral</option>
-        </select>
-    
-        <button type="submit" name="ver">Ver Piada</button>
-    
-    </form>
+    <?php if (!$mostrarAreas) { ?>
 
-<?php
+        <form method="POST">
 
-if($piada) {
-    echo "<p>" . $piada["texto"] . "</p>";
-} else {
-    echo "<p>Ainda não existem piadas nesta categoria.</p>";
-}
+            <label>Nível académico:</label>
 
-?>
+            <select name="nivel_id">
+
+                <?php foreach ($niveis as $nivel) { ?>
+
+                    <option value="<?php echo $nivel["id"]; ?>">
+                        <?php echo $nivel["nome"]; ?>
+                    </option>
+
+                <?php } ?>
+
+            </select>
+
+            <br><br>
+
+            <button type="submit" name="continuar">
+                Continuar
+            </button>
+
+        </form>
+
+    <?php } else { ?>
+
+        <form method="POST">
+
+            <input type="hidden"
+                   name="nivel_id"
+                   value="<?php echo $nivel_id; ?>">
+
+            <label>Área:</label>
+
+            <select name="area_id">
+
+                <?php foreach ($areas as $area) { ?>
+
+                    <option
+                        value="<?php echo $area["id"]; ?>"
+                        <?php
+                        if ($area_id == $area["id"]) {
+                            echo "selected";
+                        }
+                        ?>
+                    >
+                        <?php echo $area["nome"]; ?>
+                    </option>
+
+                <?php } ?>
+
+            </select>
+
+            <br><br>
+
+            <button type="submit" name="ver">
+                Ver Piada
+            </button>
+
+        </form>
+
+    <?php } ?>
+
+
+    <?php if ($piada) { ?>
+
+        <h2>😂 A tua piada</h2>
+
+        <p>
+            <?php echo htmlspecialchars($piada["texto"]); ?>
+        </p>
+
+    <?php } elseif ($semPiadas) { ?>
+
+        <p>Ainda não existem piadas nesta área.</p>
+
+    <?php } ?>
 
 </body>
+
 </html>
